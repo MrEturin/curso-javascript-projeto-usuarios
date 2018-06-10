@@ -12,34 +12,49 @@ class UserController{
 
             let values = this._getValues();
 
-            this._getPhoto((content) => {
-                values.photo = content;
-                this._addLine(values); // Adiciona linha ao html
-            });
+            this._getPhoto().then(
+                (content) => {
+                    values.photo = content;
+                    this._addLine(values); // Adiciona linha ao html
+                    this.formEl.reset();
+                },
+                (e) => {
+                    console.error(e);
+                }
+            );
 
         });
     }
 
     _getPhoto(callBack){
-        let fileReader = new FileReader();
+        return new Promise((resolve, reject) => {
+            let fileReader = new FileReader();
 
-        let filePhoto = [...this.formEl.elements].filter(item => {
-
-            if(item.name === "photo"){
-                return item;
+            let filePhoto = [...this.formEl.elements].filter(item => {
+    
+                if(item.name === "photo"){
+                    return item;
+                }
+    
+            });
+    
+            let file = filePhoto[0].files[0];
+    
+            fileReader.onload = () => {
+            
+                resolve(fileReader.result);
+    
+            };
+    
+            fileReader.onerror = (e) => {
+                reject(e);
+            };
+            if(file){
+                fileReader.readAsDataURL(file);
+            }else{
+                resolve("dist/img/avatar.png");
             }
-
         });
-
-        let file = filePhoto[0].files[0];
-
-        fileReader.onload = () => {
-        
-            callBack(fileReader.result);
-
-        };
-
-        fileReader.readAsDataURL(file);
     }
 
     _getValues(){
