@@ -66,6 +66,8 @@ class UserController{
                 if(field.checked){
                     user[field.name] = field.value;
                 }
+            }else if(field.name == "admin"){
+                user[field.name] = (field.checked) ? "SIM" : "NÃO";
             }else{
                 if(field.name == 'photo'){
                     user[field.name] = field.value;
