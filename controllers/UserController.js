@@ -1,9 +1,59 @@
 class UserController{
     
-    constructor(formId, tableId){
+    constructor(formId, formIdUpdate, tableId){
         this.formEl = document.getElementById(formId);
+        this.formUpdateEl = document.getElementById(formIdUpdate);
         this.tableEl = document.getElementById(tableId);
         this._onSubmit();
+        this._onEdit();
+    }
+
+    _onEdit(){
+
+        document.querySelector("#box-user-update .btn-cancel").addEventListener("click", e => {
+            this._showPanelCreate();
+        });
+
+        this.formUpdateEl.addEventListener("submit", event => {
+            event.preventDefault();
+            let btn = this.formUpdateEl.querySelector("[type=submit]");
+            btn.disabled = true;
+            let values = this._getValues(this.formUpdateEl);
+            
+            let index = this.formUpdateEl.dataset.trIndex;
+            let tr = this.tableEl.rows[index];
+            tr.dataset.user = JSON.stringify(values);
+
+            tr.innerHTML = `
+                <td>
+                    <img src="${values.photo}" alt="User Image" class="img-circle img-sm">
+                </td>
+                <td>${values.name}</td>
+                <td>${values.email}</td>
+                <td>${(values.admin) ? 'SIM' : 'NÃO'}</td>
+                <td>${Helpers.dateFormatBr(values.register)}</td>
+                <td>
+                    <button type="button" class="btn btn-edit btn-primary btn-xs btn-flat">Editar</button>
+                    <button type="button" class="btn btn-cancel btn-danger btn-xs btn-flat">Excluir</button>
+                </td>
+            `;
+
+            btn.disabled = false;
+
+            this._addEventsTR(tr);
+            this._updateCount();
+        });
+
+    }
+
+    _showPanelCreate(){
+        document.querySelector("#box-user-update").style.display = 'none';
+        document.querySelector("#box-user-create").style.display = 'block';
+    }
+
+    _showPanelUpdate(){
+        document.querySelector("#box-user-create").style.display = 'none';
+        document.querySelector("#box-user-update").style.display = 'block';
     }
 
     _onSubmit(){
@@ -11,7 +61,7 @@ class UserController{
             event.preventDefault();
             let botaoSubmit = document.querySelector("[type=submit]");
             botaoSubmit.disabled = true;
-            let values = this._getValues();
+            let values = this._getValues(this.formEl);
             if(!values){
                 botaoSubmit.disabled = false;
             }else{
@@ -53,10 +103,10 @@ class UserController{
         });
     }
 
-    _getValues(){
+    _getValues(formEl){
         let user = {};
         let isValid = true;
-        [...this.formEl.elements].forEach((field, index) => {
+        [...formEl.elements].forEach((field, index) => {
 
             if(['name', 'email', 'password'].indexOf(field.name) > -1 && !field.value){
                 field.parentElement.classList.add('has-error');
@@ -72,7 +122,7 @@ class UserController{
                     user[field.name] = field.value;
                 }
             }else if(field.name == "admin"){
-                user[field.name] = (field.checked) ? true : false;
+                user[field.name] = field.checked;
             }else{
                 if(field.name == 'photo'){
                     user[field.name] = field.value;
@@ -96,15 +146,10 @@ class UserController{
         );
     }
 
-    _getDataPT(data){
-        return `${data.getDate()}/${data.getMonth()+1}/${data.getFullYear()}`;
-    }
-
     _addLine(dataUser){
         let tr = document.createElement("tr");
         tr.dataset.user = JSON.stringify(dataUser);
         //Criando o dataset, o JSON não armazena os metodos. Então é necessário acessar os atridutos diretamente.
-        
         tr.innerHTML = `
             <td>
                 <img src="${dataUser.photo}" alt="User Image" class="img-circle img-sm">
@@ -114,10 +159,11 @@ class UserController{
             <td>${(dataUser.admin) ? 'SIM' : 'NÃO'}</td>
             <td>${Helpers.dateFormatBr(dataUser.register)}</td>
             <td>
-                <button type="button" class="btn btn-primary btn-xs btn-flat">Editar</button>
-                <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
+                <button type="button" class="btn btn-edit btn-primary btn-xs btn-flat">Editar</button>
+                <button type="button" class="btn btn-cancel btn-danger btn-xs btn-flat">Excluir</button>
             </td>
         `;
+        this._addEventsTR(tr);
         this.tableEl.appendChild(tr);
         this._updateCount();
     }
@@ -132,5 +178,36 @@ class UserController{
         });
         document.querySelector('#number-users').innerHTML = numUsers;
         document.querySelector('#number-admins').innerHTML = numAdmins;
+    }
+
+    _addEventsTR(tr){
+        tr.querySelector(".btn-edit").addEventListener("click", e => {
+            let infoUser = JSON.parse(tr.dataset.user);
+            let form = document.querySelector('#form-user-update');
+            form.dataset.trIndex = tr.sectionRowIndex;
+            for(let name in infoUser){
+                if(name == '_register') continue;
+                let field = form.querySelector("[name="+name.replace('_', '')+"]");
+                switch (field.type){
+                    case 'file':
+                        break;
+                    case 'radio':
+                        field = form.querySelector("[name="+name.replace("_", "")+"][value="+infoUser[name]+"]");
+                        field.checked = true;
+                        break;
+                    case 'checkbox':
+                        field.checked = infoUser[name];
+                        break;
+                    case 'text':
+                    case 'select':
+                    case 'number':
+                    case 'date':
+                    case 'email':
+                        field.value = infoUser[name];
+                        break;
+                }
+            }
+            this._showPanelUpdate();
+        });
     }
 }
