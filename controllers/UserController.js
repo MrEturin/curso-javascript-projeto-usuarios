@@ -9,7 +9,8 @@ class UserController{
     _onSubmit(){
         this.formEl.addEventListener(("submit"), event => {
             event.preventDefault();
-
+            let botaoSubmit = document.querySelector("[type=submit]");
+            botaoSubmit.disabled = true;
             let values = this._getValues();
 
             this._getPhoto().then(
@@ -17,12 +18,13 @@ class UserController{
                     values.photo = content;
                     this._addLine(values); // Adiciona linha ao html
                     this.formEl.reset();
+                    botaoSubmit.disabled = false;
                 },
                 (e) => {
                     console.error(e);
                 }
             );
-
+            
         });
     }
 
@@ -85,9 +87,12 @@ class UserController{
             user.email, 
             user.password, 
             user.photo, 
-            user.admin
+            user.admin,
         );
+    }
 
+    _getDataPT(data){
+        return `${data.getDate()}/${data.getMonth()+1}/${data.getFullYear()}`;
     }
 
     _addLine(dataUser){
@@ -99,7 +104,7 @@ class UserController{
             <td>${dataUser.name}</td>
             <td>${dataUser.email}</td>
             <td>${dataUser.admin}</td>
-            <td>${dataUser.data}</td>
+            <td>${Helpers.dateFormatBr(dataUser.register)}</td>
             <td>
                 <button type="button" class="btn btn-primary btn-xs btn-flat">Editar</button>
                 <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
