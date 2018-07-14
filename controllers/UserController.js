@@ -8,43 +8,7 @@ class UserController{
         this._onEdit();
     }
 
-    _onEdit(){
 
-        document.querySelector("#box-user-update .btn-cancel").addEventListener("click", e => {
-            this._showPanelCreate();
-        });
-
-        this.formUpdateEl.addEventListener("submit", event => {
-            event.preventDefault();
-            let btn = this.formUpdateEl.querySelector("[type=submit]");
-            btn.disabled = true;
-            let values = this._getValues(this.formUpdateEl);
-            
-            let index = this.formUpdateEl.dataset.trIndex;
-            let tr = this.tableEl.rows[index];
-            tr.dataset.user = JSON.stringify(values);
-
-            tr.innerHTML = `
-                <td>
-                    <img src="${values.photo}" alt="User Image" class="img-circle img-sm">
-                </td>
-                <td>${values.name}</td>
-                <td>${values.email}</td>
-                <td>${(values.admin) ? 'SIM' : 'NÃO'}</td>
-                <td>${Helpers.dateFormatBr(values.register)}</td>
-                <td>
-                    <button type="button" class="btn btn-edit btn-primary btn-xs btn-flat">Editar</button>
-                    <button type="button" class="btn btn-cancel btn-danger btn-xs btn-flat">Excluir</button>
-                </td>
-            `;
-
-            btn.disabled = false;
-
-            this._addEventsTR(tr);
-            this._updateCount();
-        });
-
-    }
 
     _showPanelCreate(){
         document.querySelector("#box-user-update").style.display = 'none';
@@ -64,8 +28,9 @@ class UserController{
             let values = this._getValues(this.formEl);
             if(!values){
                 botaoSubmit.disabled = false;
+                return false;
             }else{
-                this._getPhoto().then(
+                this._getPhoto(this.formEl).then(
                     (content) => {
                         values.photo = content;
                         this._addLine(values); // Adiciona linha ao html
@@ -80,10 +45,71 @@ class UserController{
         });
     }
 
-    _getPhoto(callBack){
+    _onEdit(){
+
+        document.querySelector("#box-user-update .btn-cancel").addEventListener("click", e => {
+            this._showPanelCreate();
+        });
+
+        this.formUpdateEl.addEventListener("submit", event => {
+            event.preventDefault();
+            let btn = this.formUpdateEl.querySelector("[type=submit]");
+            btn.disabled = true;
+            let values = this._getValues(this.formUpdateEl);
+            if(!values){
+                btn.disabled = false;
+                return false;
+            }
+            let index = this.formUpdateEl.dataset.trIndex;
+            let tr = this.tableEl.rows[index];
+
+            let userOld = JSON.parse(tr.dataset.user);
+
+            let result = Object.assign({}, userOld, values);
+
+            this._getPhoto(this.formUpdateEl).then(
+                (content) => {
+
+                    if(!values.photo){
+                        result._photo = userOld._photo;
+                    }else{
+                        result._photo = content;
+                    }
+
+                    tr.dataset.user = JSON.stringify(result);
+
+                    tr.innerHTML = `
+                        <td>
+                            <img src="${result._photo}" alt="User Image" class="img-circle img-sm">
+                        </td>
+                        <td>${result._name}</td>
+                        <td>${result._email}</td>
+                        <td>${(result._admin) ? 'SIM' : 'NÃO'}</td>
+                        <td>${Helpers.dateFormatBr(result._register)}</td>
+                        <td>
+                            <button type="button" class="btn btn-edit btn-primary btn-xs btn-flat">Editar</button>
+                            <button type="button" class="btn btn-cancel btn-danger btn-xs btn-flat">Excluir</button>
+                        </td>
+                    `;
+                    this._addEventsTR(tr);
+                    this._updateCount();
+                    result._photo = content;
+                    btn.disabled = false;
+                    this._showPanelCreate();
+                    this.formUpdateEl.reset();
+                },
+                (e) => {
+                    console.error(e);
+                }
+            );
+        });
+
+    }
+
+    _getPhoto(form, callBack){
         return new Promise((resolve, reject) => {
             let fileReader = new FileReader();
-            let filePhoto = [...this.formEl.elements].filter(item => {
+            let filePhoto = [...form.elements].filter(item => {
                 if(item.name === "photo"){
                     return item;
                 }
@@ -123,12 +149,10 @@ class UserController{
                 }
             }else if(field.name == "admin"){
                 user[field.name] = field.checked;
+            }else if(field.name == 'photo'){
+                user[field.name] = field.value;
             }else{
-                if(field.name == 'photo'){
-                    user[field.name] = field.value;
-                }else{
-                    user[field.name] = field.value;
-                }
+                user[field.name] = field.value;
             }
         });
 
@@ -183,16 +207,15 @@ class UserController{
     _addEventsTR(tr){
         tr.querySelector(".btn-edit").addEventListener("click", e => {
             let infoUser = JSON.parse(tr.dataset.user);
-            let form = document.querySelector('#form-user-update');
-            form.dataset.trIndex = tr.sectionRowIndex;
+            this.formUpdateEl.dataset.trIndex = tr.sectionRowIndex;
             for(let name in infoUser){
                 if(name == '_register') continue;
-                let field = form.querySelector("[name="+name.replace('_', '')+"]");
+                let field = this.formUpdateEl.querySelector("[name="+name.replace('_', '')+"]");
                 switch (field.type){
                     case 'file':
                         break;
                     case 'radio':
-                        field = form.querySelector("[name="+name.replace("_", "")+"][value="+infoUser[name]+"]");
+                        field = this.formUpdateEl.querySelector("[name="+name.replace("_", "")+"][value="+infoUser[name]+"]");
                         field.checked = true;
                         break;
                     case 'checkbox':
@@ -207,6 +230,7 @@ class UserController{
                         break;
                 }
             }
+            this.formUpdateEl.querySelector(".photo").src= infoUser._photo;
             this._showPanelUpdate();
         });
     }
